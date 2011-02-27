@@ -1,0 +1,79 @@
+Remove Hugo.
+
+The Hugo interpreter has a restrictive license (licenses/HUGO License.txt)
+which makes it unsuitable for inclusion in this package.
+
+There is some hope that this situation will change in the future:
+http://groups.google.com/group/garglk-dev/browse_thread/thread/00f35c1cbc01f203
+
+--- a/src/License.txt
++++ b/src/License.txt
+@@ -14,8 +14,6 @@ Git is copyright (c) Iain Merrick. It is released under the terms of the MIT Lic
+ 
+ Glulxe is copyright (c) Andrew Plotkin.
+ 
+-Hugo is copyright (c) Kent Tessman. It is released with permission under the terms of the HUGO license.
+-
+ JACL is copyright (c) Stuart Allen.  It is released under the terms of the GNU General Public License.
+ 
+ Level 9 is copyright (c) Glen Summers, David Kinder, Alan Staniforth, Simon Baldwin and Dieter Baron. It is released under the terms of the GNU General Public License.
+--- a/src/garglk/launcher.c
++++ b/src/garglk/launcher.c
+@@ -31,7 +31,6 @@
+ #define T_ADVSYS    "advsys"
+ #define T_AGT       "agility"
+ #define T_GLULX     "git"
+-#define T_HUGO      "hugo"
+ #define T_JACL      "jacl"
+ #define T_LEV9      "level9"
+ #define T_MGSR      "magnetic"
+@@ -317,9 +316,6 @@ int rungame(char *path, char *game)
+     if (!strcasecmp(ext, "ulx"))
+         return winterp(path, T_GLULX, "", game);
+ 
+-    if (!strcasecmp(ext, "hex"))
+-        return winterp(path, T_HUGO, "", game);
+-
+     if (!strcasecmp(ext, "jacl"))
+         return winterp(path, T_JACL, "", game);
+     if (!strcasecmp(ext, "j2"))
+--- a/src/garglk/launcher.sh
++++ b/src/garglk/launcher.sh
+@@ -56,7 +56,6 @@ case "$lowpath" in
+     *.asl ) $dirpath/geas "$1" ;;
+     *.cas ) $dirpath/geas "$1" ;;
+     *.ulx ) $dirpath/git "$1" ;;
+-    *.hex ) $dirpath/hugo "$1" ;;
+     *.jacl ) $dirpath/jacl "$1" ;;
+     *.j2  ) $dirpath/jacl "$1" ;;
+     *.l9  ) $dirpath/level9 "$1" ;;
+--- a/src/garglk/launchgtk.c
++++ b/src/garglk/launchgtk.c
+@@ -44,7 +44,6 @@ char *filterlist[] =
+ "AdvSys Games (*.dat)|*.dat",
+ "AGT Games (*.agx)|*.agx;*.d[0-9][0-9]",
+ "Glulx Games (*.ulx)|*.ulx;*.blb;*.blorb;*.glb;*.gblorb",
+-"Hugo Games (*.hex)|*.hex",
+ "JACL Games (*.jacl,*.j2)|*.jacl;*.j2",
+ "Level 9 (*.l9)|*.l9;*.sna",
+ "Magnetic Scrolls (*.mag)|*.mag",
+@@ -55,7 +54,7 @@ char *filterlist[] =
+ "All Files|*",
+ };
+ 
+-const int filtercount = 14;
++const int filtercount = 13;
+ 
+ void winstart(void)
+ {
+--- a/src/terps/Jamfile
++++ b/src/terps/Jamfile
+@@ -14,7 +14,7 @@ MAKE_FROTZ      ?= yes ;
+ MAKE_GEAS       ?= yes ;
+ MAKE_GIT        ?= yes ;
+ MAKE_GLULXE     ?= yes ;
+-MAKE_HUGO       ?= yes ;
++MAKE_HUGO       ?= no ;
+ MAKE_LEVEL9     ?= yes ;
+ MAKE_MAGNETIC   ?= yes ;
+ MAKE_NITFOL     ?= yes ;

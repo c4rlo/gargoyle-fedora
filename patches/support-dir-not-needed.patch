@@ -1,0 +1,12 @@
+Support dir not needed
+
+--- a/src/Jamfile
++++ b/src/Jamfile
+@@ -8,7 +8,6 @@ SubDir TOP ;
+ SubInclude TOP garglk ;
+ SubInclude TOP terps ;
+ SubInclude TOP tads ;
+-SubInclude TOP support ;
+ 
+ # If SYSTEM is set, use values for a system wide install
+ if $(SYSTEM)

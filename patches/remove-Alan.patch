@@ -1,0 +1,88 @@
+Remove Alan interpreters.
+
+The Alan2 and Alan3 interpreters do not have licensing information,
+therefore we cannot include them.
+
+Newer versions have been released under the Artistic License 2.0
+(http://groups.google.com/group/garglk-dev/browse_thread/thread/00f35c1cbc01f203)
+but it is unclear whether this applies also to the versions bundled with
+Gargoyle.
+
+--- a/src/License.txt
++++ b/src/License.txt
+@@ -6,8 +6,6 @@ AdvSys is copyright (c) David Michael Betz. It is released under the terms of th
+ 
+ AGiliTy is copyright (c) Robert Masenten. It is released under the terms of the GNU General Public License.
+ 
+-Alan is copyright (c) Thomas Nilsson.
+-
+ Frotz is copyright (c) Stefan Jokisch. It is released under the terms of the GNU General Public License.
+ 
+ Geas is copyright (c) Mark Tilford and David Jones. It is released under the terms of the GNU General Public License.
+--- a/src/garglk/launcher.c
++++ b/src/garglk/launcher.c
+@@ -30,8 +30,6 @@
+ #define T_ADRIFT    "scare"
+ #define T_ADVSYS    "advsys"
+ #define T_AGT       "agility"
+-#define T_ALAN2     "alan2"
+-#define T_ALAN3     "alan3"
+ #define T_GLULX     "git"
+ #define T_HUGO      "hugo"
+ #define T_JACL      "jacl"
+@@ -313,12 +311,6 @@ int rungame(char *path, char *game)
+     if (!strcasecmp(ext, "agx"))
+         return winterp(path, T_AGT, "-gl", game);
+ 
+-    if (!strcasecmp(ext, "acd"))
+-        return winterp(path, T_ALAN2, "", game);
+-
+-    if (!strcasecmp(ext, "a3c"))
+-        return winterp(path, T_ALAN3, "", game);
+-
+     if (!strcasecmp(ext, "taf"))
+         return winterp(path, T_ADRIFT, "", game);
+ 
+--- a/src/garglk/launcher.sh
++++ b/src/garglk/launcher.sh
+@@ -53,8 +53,6 @@ case "$lowpath" in
+     *.dat ) $dirpath/advsys "$1" ;;
+     *.agx ) $dirpath/agility "$1" ;;
+     *.d\$\$ ) $dirpath/agility "$1" ;;
+-    *.acd ) $dirpath/alan2 "$1" ;;
+-    *.a3c ) $dirpath/alan3 "$1" ;;
+     *.asl ) $dirpath/geas "$1" ;;
+     *.cas ) $dirpath/geas "$1" ;;
+     *.ulx ) $dirpath/git "$1" ;;
+--- a/src/garglk/launchgtk.c
++++ b/src/garglk/launchgtk.c
+@@ -43,7 +43,6 @@ char *filterlist[] =
+ "Adrift Games (*.taf)|*.taf",
+ "AdvSys Games (*.dat)|*.dat",
+ "AGT Games (*.agx)|*.agx;*.d[0-9][0-9]",
+-"Alan Games (*.acd,*.a3c)|*.acd;*.a3c",
+ "Glulx Games (*.ulx)|*.ulx;*.blb;*.blorb;*.glb;*.gblorb",
+ "Hugo Games (*.hex)|*.hex",
+ "JACL Games (*.jacl,*.j2)|*.jacl;*.j2",
+@@ -56,7 +55,7 @@ char *filterlist[] =
+ "All Files|*",
+ };
+ 
+-const int filtercount = 15;
++const int filtercount = 14;
+ 
+ void winstart(void)
+ {
+--- a/src/terps/Jamfile
++++ b/src/terps/Jamfile
+@@ -8,8 +8,8 @@ SubDir TOP terps ;
+ 
+ MAKE_ADVSYS     ?= yes ;
+ MAKE_AGILITY    ?= yes ;
+-MAKE_ALAN2      ?= yes ;
+-MAKE_ALAN3      ?= yes ;
++MAKE_ALAN2      ?= no ;
++MAKE_ALAN3      ?= no ;
+ MAKE_FROTZ      ?= yes ;
+ MAKE_GEAS       ?= yes ;
+ MAKE_GIT        ?= yes ;

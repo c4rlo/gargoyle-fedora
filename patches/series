@@ -1,0 +1,7 @@
+support-dir-not-needed.patch
+fix-build.patch
+gargoyle-fix-desktop-file.patch
+remove-Alan.patch
+remove-Hugo.patch
+remove-luximono-font.patch
+fix-font-config.patch
