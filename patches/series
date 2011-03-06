@@ -1,5 +1,6 @@
 support-dir-not-needed.patch
 fix-build.patch
+remove-smpeg.patch
 gargoyle-fix-desktop-file.patch
 remove-Alan.patch
 remove-Hugo.patch

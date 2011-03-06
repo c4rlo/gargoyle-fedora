@@ -1,6 +1,6 @@
 Name:           gargoyle
 Version:        2010.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Interactive fiction interpreter with excellent text rendering
 
 Group:          Amusements/Games
@@ -15,15 +15,16 @@ Source1:        gargoyle.6
 Source2:        README.fedora
 Patch0:         support-dir-not-needed.patch
 Patch1:         fix-build.patch
-Patch2:         gargoyle-fix-desktop-file.patch
-Patch3:         remove-Alan.patch
-Patch4:         remove-Hugo.patch
-Patch5:         remove-luximono-font.patch
-Patch6:         fix-font-config.patch
+Patch2:         remove-smpeg.patch
+Patch3:         gargoyle-fix-desktop-file.patch
+Patch4:         remove-Alan.patch
+Patch5:         remove-Hugo.patch
+Patch6:         remove-luximono-font.patch
+Patch7:         fix-font-config.patch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  jam,SDL-devel,SDL_sound-devel,SDL_mixer-devel,gtk2-devel,freetype-devel,libjpeg-turbo-devel,smpeg-devel,desktop-file-utils
-Requires:       smpeg-libs,linux-libertine-fonts,liberation-mono-fonts
+Requires:       linux-libertine-fonts,liberation-mono-fonts
 
 %description
 Gargoyle is an interpreter for interactive fiction (text adventure) story files
@@ -44,6 +45,7 @@ restrictions.
 %patch4 -p2
 %patch5 -p2
 %patch6 -p2
+%patch7 -p2
 
 %build
 sed -i "s/_OPTFLAGS_/%{optflags}/" Jamrules
@@ -93,5 +95,8 @@ desktop-file-install \
 %doc License.txt README.fedora
 
 %changelog
+* Sun Mar 06 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-2
+- Do not link against smpeg, and target the official Fedora repository instead
+  of RPM Fusion
 * Thu Feb 24 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-1
 - Initial creation of Fedora package
