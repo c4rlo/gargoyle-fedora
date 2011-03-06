@@ -1,7 +1,8 @@
 support-dir-not-needed.patch
 fix-build.patch
+apply-optflags.patch
 remove-smpeg.patch
-gargoyle-fix-desktop-file.patch
+fix-desktop-file.patch
 remove-Alan.patch
 remove-Hugo.patch
 remove-luximono-font.patch

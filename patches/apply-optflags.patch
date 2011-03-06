@@ -1,0 +1,16 @@
+Replace the default compiler flags (-O2) by _OPTFLAGS_; this is replaced by the
+value of the RPM %{optflags} variable in the %build section of the spec file.
+
+Index: gargoyle/src/Jamrules
+===================================================================
+--- gargoyle.orig/src/Jamrules
++++ gargoyle/src/Jamrules
+@@ -121,7 +121,7 @@ switch $(BUILD)
+ 
+     case RELEASE :
+         Echo "BUILD is RELEASE" ;
+-        OPTIM = -O2 ;
++        OPTIM = _OPTFLAGS_ ;
+ 
+     case TURBO :
+         Echo "BUILD is TURBO" ;

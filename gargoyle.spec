@@ -15,15 +15,15 @@ Source1:        gargoyle.6
 Source2:        README.fedora
 Patch0:         support-dir-not-needed.patch
 Patch1:         fix-build.patch
-Patch2:         remove-smpeg.patch
-Patch3:         gargoyle-fix-desktop-file.patch
-Patch4:         remove-Alan.patch
-Patch5:         remove-Hugo.patch
-Patch6:         remove-luximono-font.patch
-Patch7:         fix-font-config.patch
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Patch2:         apply-optflags.patch
+Patch3:         remove-smpeg.patch
+Patch4:         fix-desktop-file.patch
+Patch5:         remove-Alan.patch
+Patch6:         remove-Hugo.patch
+Patch7:         remove-luximono-font.patch
+Patch8:         fix-font-config.patch
 
-BuildRequires:  jam,SDL-devel,SDL_sound-devel,SDL_mixer-devel,gtk2-devel,freetype-devel,libjpeg-turbo-devel,smpeg-devel,desktop-file-utils
+BuildRequires:  jam,SDL-devel,SDL_sound-devel,SDL_mixer-devel,gtk2-devel,freetype-devel,libjpeg-turbo-devel,desktop-file-utils
 Requires:       linux-libertine-fonts,liberation-mono-fonts
 
 %description
@@ -46,6 +46,7 @@ restrictions.
 %patch5 -p2
 %patch6 -p2
 %patch7 -p2
+%patch8 -p2
 
 %build
 sed -i "s/_OPTFLAGS_/%{optflags}/" Jamrules
@@ -61,7 +62,7 @@ jam \
   -s _APPDIR=%{_libexecdir}/%{name} \
   -s _LIBDIR=%{_libdir}/%{name} \
   install
-chmod 755 %{buildroot}/%{_libexecdir}/%{name}/*
+chmod 755 %{buildroot}/%{_libexecdir}/%{name}/* %{buildroot}/%{_libdir}/%{name}/libgarglk.so
 ln -s %{_libexecdir}/%{name}/%{name} %{buildroot}/%{_bindir}/%{name}
 ln -s %{_libdir}/%{name}/libgarglk.so %{buildroot}/%{_libdir}/libgarglk.so
 
