@@ -1,6 +1,6 @@
 Name:           gargoyle
 Version:        2010.1
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Interactive fiction interpreter with excellent text rendering
 
 Group:          Amusements/Games
@@ -8,11 +8,14 @@ Group:          Amusements/Games
 # See License.txt for an overview.
 License:        GPLv2 and GPLv2+ and BSD and MIT and (Freely redistributable without restriction)
 URL:            http://ccxvii.net/gargoyle/
-# This is not the original source zip because the original contains non-free code
+# This is not the upstream source zip file because it contains non-free code.
 # Original download URL: http://garglk.googlecode.com/files/gargoyle-2010.1-sources.zip
+# To go from upstream sources to the tarball we use, run generate-tarball.sh
+# (included only for informational purposes, not used or installed)
 Source0:        gargoyle-2010.1.tar.bz2
 Source1:        gargoyle.6
 Source2:        README.fedora
+Source3:        generate-tarball.sh
 Patch0:         support-dir-not-needed.patch
 Patch1:         fix-build.patch
 Patch2:         apply-optflags.patch
@@ -96,6 +99,8 @@ desktop-file-install \
 %doc License.txt README.fedora
 
 %changelog
+* Sat May 14 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-3
+- Add generate-tarball.sh script to SRPM
 * Sun Mar 06 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-2
 - Do not link against smpeg, and target the official Fedora repository instead
   of RPM Fusion

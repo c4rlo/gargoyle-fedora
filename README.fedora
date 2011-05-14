@@ -2,7 +2,7 @@
 copied from Debian's gargoyle-free.copyright file)
 
 In order to have a completely free source tarball, the following directories and files were
-removed to create the gargoyle-free tarball:
+removed to create the tarball from which this package is built:
 
   - terps/alan2/: non-free license (need to register and cannot modify
     without author's permission), check
