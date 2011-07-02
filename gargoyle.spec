@@ -1,12 +1,12 @@
 Name:           gargoyle
 Version:        2010.1
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Interactive fiction interpreter with excellent text rendering
 
 Group:          Amusements/Games
 # As Gargoyle contains several bundled interpreters, we end up with multiple licenses.
 # See License.txt for an overview.
-License:        GPLv2 and GPLv2+ and BSD and MIT and (Freely redistributable without restriction)
+License:        GPLv2 and GPLv2+ and BSD and MIT and Glulxe
 URL:            http://ccxvii.net/gargoyle/
 # This is not the upstream source zip file because it contains non-free code.
 # Original download URL: http://garglk.googlecode.com/files/gargoyle-2010.1-sources.zip
@@ -87,7 +87,6 @@ desktop-file-install \
   garglk/gargoyle.desktop
 
 %files
-%defattr(-,root,root,-)
 %{_bindir}/%{name}
 %{_libdir}/libgarglk.so
 %{_libdir}/%{name}
@@ -99,6 +98,12 @@ desktop-file-install \
 %doc License.txt README.fedora
 
 %changelog
+* Sun Jul 02 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-4
+- Repackage for Fedora 15
+- Fix permissions on generate-tarball.sh
+- Change license for Glulxe from "Freely redistributable without restriction"
+  to "Glulxe", as recommended in
+  http://lists.fedoraproject.org/pipermail/legal/2011-June/001684.html
 * Sat May 14 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-3
 - Add generate-tarball.sh script to SRPM
 * Sun Mar 06 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-2
