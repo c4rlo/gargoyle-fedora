@@ -98,7 +98,7 @@ desktop-file-install \
 %doc License.txt README.fedora
 
 %changelog
-* Sun Jul 02 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-4
+* Sat Jul 02 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-4
 - Repackage for Fedora 15
 - Fix permissions on generate-tarball.sh
 - Change license for Glulxe from "Freely redistributable without restriction"
