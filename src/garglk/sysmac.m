@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <mach/mach_time.h>
 
 #include "glk.h"
 #include "garglk.h"
@@ -37,11 +38,14 @@
 #endif
 
 static volatile int gli_event_waiting = FALSE;
+static volatile int gli_mach_allowed = FALSE;
 static volatile int gli_window_alive = TRUE;
 
 #define kArrowCursor 1
 #define kIBeamCursor 2
 #define kPointingHandCursor 3
+
+void wintick(CFRunLoopTimerRef timer, void *info);
 
 @protocol GargoyleApp
 - (BOOL) initWindow: (pid_t) processID
@@ -87,16 +91,13 @@ static volatile int gli_window_alive = TRUE;
 @interface GargoyleMonitor : NSObject
 {
     NSRect size;
-    NSDate * referenceDate;
-    NSTimeInterval interval;
-    int timerid;
+    CFRunLoopTimerRef timerid;
     int timeouts;
-    int clock;
 }
 - (id) init;
 - (void) sleep;
+- (void) track: (CFTimeInterval) seconds;
 - (void) tick;
-- (void) track: (NSTimeInterval) seconds;
 - (BOOL) timeout;
 - (void) reset;
 - (void) connectionDied: (NSNotification *) notice;
@@ -108,9 +109,7 @@ static volatile int gli_window_alive = TRUE;
 {
     self = [super init];
 
-    referenceDate = [[NSDate alloc] init];
-    interval = 0;
-    timerid = -1;
+    timerid = 0;
     timeouts = 0;
 
     return self;
@@ -119,48 +118,40 @@ static volatile int gli_window_alive = TRUE;
 - (void) sleep
 {
     while (!timeouts && !gli_event_waiting)
-        [self tick];
-}
-
-- (void) tick
-{
-    if (!gli_window_alive)
-        exit(1);
-
-    if (timerid != -1)
     {
-        if ([referenceDate compare: [NSDate date]] == NSOrderedAscending)
-        {
-            timeouts++;
-            [referenceDate release];
-            referenceDate = [[NSDate alloc] initWithTimeIntervalSinceNow: interval];
-        }
-        else
-        {
-            [NSThread sleepUntilDate: referenceDate];
-        }
-    }
-    else
-    {
-        [NSThread sleepUntilDate: [NSDate distantFuture]];
+        if (!gli_window_alive)
+            exit(1);
+
+        gli_mach_allowed = TRUE;
+        [[NSRunLoop currentRunLoop] acceptInputForMode: NSDefaultRunLoopMode beforeDate: [NSDate distantFuture]];
+        gli_mach_allowed = FALSE;
     }
 }
 
-- (void) track: (NSTimeInterval) seconds
+- (void) track: (CFTimeInterval) seconds
 {
-    if (timerid != -1)
+    if (timerid)
     {
-        timerid = -1;
+        if (CFRunLoopTimerIsValid(timerid))
+            CFRunLoopTimerInvalidate(timerid);
+        CFRelease(timerid);
+        timerid = 0;
         timeouts = 0;
     }
 
     if (seconds)
     {
-        timerid = 1;
-        interval = seconds;
-        [referenceDate release];
-        referenceDate = [[NSDate alloc] initWithTimeIntervalSinceNow: interval];
+        timerid = CFRunLoopTimerCreate(NULL, CFAbsoluteTimeGetCurrent() + seconds, seconds,
+                                       0, 0, &wintick, NULL);
+        if (timerid)
+            CFRunLoopAddTimer([[NSRunLoop currentRunLoop] getCFRunLoop], timerid, kCFRunLoopDefaultMode);
     }
+}
+
+- (void) tick
+{
+    timeouts++;
+    CFRunLoopStop([[NSRunLoop currentRunLoop] getCFRunLoop]);
 }
 
 - (BOOL) timeout
@@ -192,6 +183,11 @@ static int gli_window_hidden = FALSE;
 void glk_request_timer_events(glui32 millisecs)
 {
     [monitor track: ((double) millisecs) / 1000];
+}
+
+void wintick(CFRunLoopTimerRef timer, void *info)
+{
+    [monitor tick];
 }
 
 void winabort(const char *fmt, ...)
@@ -229,7 +225,7 @@ void winopenfile(char *prompt, char *buf, int len, int filter)
     if (fileref)
     {
         int size = [fileref length];
-        
+
         CFStringGetBytes((CFStringRef) fileref, CFRangeMake(0, size),
                          kCFStringEncodingASCII, 0, FALSE,
                          buf, len, NULL);
@@ -254,11 +250,11 @@ void winsavefile(char *prompt, char *buf, int len, int filter)
     if (fileref)
     {
         int size = [fileref length];
-        
+
         CFStringGetBytes((CFStringRef) fileref, CFRangeMake(0, size),
                          kCFStringEncodingASCII, 0, FALSE,
                          buf, len, NULL);
-        
+
         int bounds = size < len ? size : len;
         buf[bounds] = '\0';
     }
@@ -336,8 +332,10 @@ void wintitle(void)
 
     char buf[256];
 
-    if (strlen(gli_story_name))
-        sprintf(buf, "%s - %s", gli_program_name, gli_story_name);
+    if (strlen(gli_story_title))
+        sprintf(buf, "%s", gli_story_title);
+    else if (strlen(gli_story_name))
+        sprintf(buf, "%s - %s", gli_story_name, gli_program_name);
     else
         sprintf(buf, "%s", gli_program_name);
 
@@ -374,10 +372,36 @@ void winresize(void)
     gli_windows_size_change();
 }
 
+static mach_port_t gli_signal_port = 0;
+
+void winmach(CFMachPortRef port, void *msg, CFIndex size, void *info)
+{
+    mach_msg_header_t* hdr = (mach_msg_header_t*)msg;
+    switch (hdr->msgh_id)
+    {
+        case SIGUSR1:
+            gli_event_waiting = true;
+            break;
+
+        default:
+            break;
+    }
+}
+
 void winhandler(int signal)
 {
-    if (signal == SIGUSR1)
-        gli_event_waiting = TRUE;
+    if (signal == SIGUSR1 && gli_mach_allowed)
+    {
+        mach_msg_header_t header;
+        header.msgh_bits        = MACH_MSGH_BITS(MACH_MSG_TYPE_MAKE_SEND, 0);
+        header.msgh_size        = sizeof(header);
+        header.msgh_remote_port = gli_signal_port;
+        header.msgh_local_port  = MACH_PORT_NULL;
+        header.msgh_reserved    = 0;
+        header.msgh_id          = signal;
+
+        mach_msg_send(&header);
+    }
 
     if (signal == SIGUSR2)
         gli_window_alive = FALSE;
@@ -403,7 +427,12 @@ void wininit(int *argc, char **argv)
     gargoyle = (NSObject<GargoyleApp> *)[link rootProxy];
     [gargoyle retain];
 
-    /* prepare signal handler */
+    /* listen for mach messages */ 
+    CFMachPortRef sigPort = CFMachPortCreate(NULL, winmach, NULL, NULL);
+    gli_signal_port = CFMachPortGetPort(sigPort);
+    [[NSRunLoop currentRunLoop] addPort: [NSMachPort portWithMachPort: gli_signal_port] forMode: NSDefaultRunLoopMode];
+
+    /* load signal handler */
     signal(SIGUSR1, winhandler);
     signal(SIGUSR2, winhandler);
 
@@ -486,7 +515,7 @@ void winkey(NSEvent *evt)
     gli_refresh_needed = TRUE;
 
     /* check for arrow keys */
-    if ([evt modifierFlags] & NSNumericPadKeyMask)
+    if ([evt modifierFlags] & NSFunctionKeyMask)
     {
         /* modified keys for scrolling */
         if ([evt modifierFlags] & NSCommandKeyMask
@@ -708,7 +737,7 @@ void winpoll(void)
     do
     {
         if (gli_refresh_needed)
-            winrefresh(); 
+            winrefresh();
 
         if (gli_event_waiting)
             evt = [gargoyle getWindowEvent: processID];
@@ -725,7 +754,10 @@ void gli_select(event_t *event, int polled)
     gli_curevent = event;
     gli_event_clearevent(event);
 
-    if (!polled)
+    winpoll();
+    gli_dispatch_event(gli_curevent, polled);
+
+    if (gli_curevent->type == evtype_None && !polled)
     {
         while (![monitor timeout])
         {
@@ -739,13 +771,6 @@ void gli_select(event_t *event, int polled)
         }
     }
 
-    else
-    {
-        if (![monitor timeout])
-            winpoll();
-        gli_dispatch_event(gli_curevent, polled);
-    }
-
     if (gli_curevent->type == evtype_None && [monitor timeout])
     {
         gli_event_store(evtype_Timer, NULL, 0, 0);
@@ -756,4 +781,21 @@ void gli_select(event_t *event, int polled)
     gli_curevent = NULL;
 
     [pool drain];
+}
+
+/* monotonic clock time for profiling */
+void wincounter(glktimeval_t *time)
+{
+    static mach_timebase_info_data_t info = {0,0};
+    if (!info.denom)
+        mach_timebase_info(&info);
+
+    uint64_t tick = mach_absolute_time();
+    tick *= info.numer;
+    tick /= info.denom;
+    uint64_t micro = tick / 1000;
+
+    time->high_sec = 0;
+    time->low_sec  = (unsigned int) ((micro / 1000000) & 0xFFFFFFFF);
+    time->microsec = (unsigned int) ((micro % 1000000) & 0xFFFFFFFF);
 }

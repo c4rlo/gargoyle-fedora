@@ -22,8 +22,8 @@
  *****************************************************************************/
 
 /*
- * Private header file for the Kickass Implementation of the Glk API.
- * Glk API which this implements: version 0.7.0.
+ * Private header file for the Gargoyle Implementation of the Glk API.
+ * Glk API which this implements: version 0.7.3.
  * Glk designed by Andrew Plotkin <erkyrath@eblong.com>
  * http://www.eblong.com/zarf/glk/index.html
  */
@@ -55,11 +55,11 @@ extern int gli_utf8output, gli_utf8input;
 /* Callbacks necessary for the dispatch layer.  */
 
 extern gidispatch_rock_t (*gli_register_obj)(void *obj, glui32 objclass);
-extern void (*gli_unregister_obj)(void *obj, glui32 objclass, 
+extern void (*gli_unregister_obj)(void *obj, glui32 objclass,
     gidispatch_rock_t objrock);
-extern gidispatch_rock_t (*gli_register_arr)(void *array, glui32 len, 
+extern gidispatch_rock_t (*gli_register_arr)(void *array, glui32 len,
     char *typecode);
-extern void (*gli_unregister_arr)(void *array, glui32 len, char *typecode, 
+extern void (*gli_unregister_arr)(void *array, glui32 len, char *typecode,
     gidispatch_rock_t objrock);
 
 /* Some useful type declarations. */
@@ -91,6 +91,7 @@ typedef struct window_graphics_s window_graphics_t;
 extern char gli_program_name[256];
 extern char gli_program_info[256];
 extern char gli_story_name[256];
+extern char gli_story_title[256];
 extern int gli_terminated;
 
 extern window_t *gli_rootwin;
@@ -103,7 +104,7 @@ extern int gli_cellw;
 extern int gli_cellh;
 
 /* Usurp C1 space for ligatures and smart typography glyphs */
-#define ENC_LIG_FI 128	
+#define ENC_LIG_FI 128
 #define ENC_LIG_FL 129
 #define ENC_LSQUO 130
 #define ENC_RSQUO 131
@@ -177,9 +178,13 @@ extern unsigned char *gli_image_rgb;
  */
 
 extern char gli_workdir[];
+extern char gli_workfile[];
 
 extern style_t gli_tstyles[style_NUMSTYLES];
 extern style_t gli_gstyles[style_NUMSTYLES];
+
+extern style_t gli_tstyles_def[style_NUMSTYLES];
+extern style_t gli_gstyles_def[style_NUMSTYLES];
 
 extern unsigned char gli_window_color[3];
 extern unsigned char gli_border_color[3];
@@ -223,6 +228,7 @@ extern int gli_conf_safeclicks;
 extern int gli_conf_justify;
 extern int gli_conf_quotes;
 extern int gli_conf_spaces;
+extern int gli_conf_caps;
 
 extern int gli_rows;
 extern int gli_cols;
@@ -320,7 +326,8 @@ struct glk_stream_struct
     window_t *win;
 
     /* for strtype_File */
-    FILE *file; 
+    FILE *file;
+    glui32 lastop; /* 0, filemode_Write, or filemode_Read */
     int textfile;
 
     /* for strtype_Memory */
@@ -356,12 +363,12 @@ typedef struct attr_s
 {
     unsigned fgset   : 1;
     unsigned bgset   : 1;
+    unsigned reverse : 1;
+    unsigned         : 1;
+    unsigned style   : 4;
     unsigned fgcolor : 24;
     unsigned bgcolor : 24;
-    unsigned style   : 4;
-    unsigned reverse : 1;
-    unsigned hyper   : 4;
-    unsigned         : 5;
+    unsigned hyper   : 32;
 } attr_t;
 
 struct glk_window_struct
@@ -380,7 +387,6 @@ struct glk_window_struct
 
     int line_request;
     int line_request_uni;
-    glui32 *line_terminators;
     int char_request;
     int char_request_uni;
     int mouse_request;
@@ -388,6 +394,10 @@ struct glk_window_struct
     int more_request;
     int scroll_request;
     int image_loaded;
+
+    glui32 echo_line_input;
+    glui32 *line_terminators;
+    glui32 termct;
 
     attr_t attr;
     unsigned char bgcolor[3];
@@ -405,7 +415,7 @@ struct window_blank_s
 struct window_pair_s
 {
     window_t *owner;
-    window_t *child1, *child2; 
+    window_t *child1, *child2;
 
     /* split info... */
     glui32 dir; /* winmethod_Left, Right, Above, or Below */
@@ -414,6 +424,7 @@ struct window_pair_s
     window_t *key; /* NULL or a leaf-descendant (not a Pair) */
     int keydamage; /* used as scratch space in window closing */
     glui32 size; /* size value */
+    glui32 wborder;  /* winMethod_Border, NoBorder */
 };
 
 /* One line of the grid window. */
@@ -440,6 +451,7 @@ struct window_textgrid_s
     int incurs, inlen;
     attr_t origattr;
     gidispatch_rock_t inarrayrock;
+    glui32 *line_terminators;
 
     /* style hints and settings */
     style_t styles[style_NUMSTYLES];
@@ -493,6 +505,9 @@ struct window_textbuffer_s
     long incurs;
     attr_t origattr;
     gidispatch_rock_t inarrayrock;
+
+    glui32 echo_line_input;
+    glui32 *line_terminators;
 
     /* style hints and settings */
     style_t styles[style_NUMSTYLES];
@@ -593,6 +608,7 @@ extern void gcmd_accept_scroll(window_t *win, glui32 arg);
 
 extern void gli_initialize_misc(void);
 extern void gli_initialize_windows(void);
+extern void gli_initialize_babel(void);
 
 extern window_t *gli_new_window(glui32 type, glui32 rock);
 extern void gli_delete_window(window_t *win);
@@ -602,6 +618,7 @@ extern void gli_window_rearrange(window_t *win, rect_t *box);
 extern void gli_window_redraw(window_t *win);
 extern void gli_window_put_char_uni(window_t *win, glui32 ch);
 extern int gli_window_unput_char_uni(window_t *win, glui32 ch);
+extern int gli_window_check_terminator(glui32 ch);
 
 extern void gli_windows_redraw(void);
 extern void gli_windows_size_change(void);
@@ -618,19 +635,19 @@ void gli_input_handle_key(glui32 key);
 void gli_input_handle_click(int x, int y);
 void gli_event_store(glui32 type, window_t *win, glui32 val1, glui32 val2);
 
-extern stream_t *gli_new_stream(glui32 type, int readable, int writable, 
+extern stream_t *gli_new_stream(glui32 type, int readable, int writable,
     glui32 rock, int unicode);
 extern void gli_delete_stream(stream_t *str);
 extern stream_t *gli_stream_open_window(window_t *win);
 extern strid_t gli_stream_open_pathname(char *pathname, int textmode,
     glui32 rock);
 extern void gli_stream_set_current(stream_t *str);
-extern void gli_stream_fill_result(stream_t *str, 
+extern void gli_stream_fill_result(stream_t *str,
     stream_result_t *result);
 extern void gli_stream_echo_line(stream_t *str, char *buf, glui32 len);
 extern void gli_stream_echo_line_uni(stream_t *str, glui32 *buf, glui32 len);
 
-extern fileref_t *gli_new_fileref(char *filename, glui32 usage, 
+extern fileref_t *gli_new_fileref(char *filename, glui32 usage,
     glui32 rock);
 extern void gli_delete_fileref(fileref_t *fref);
 
@@ -664,6 +681,7 @@ void winopenfile(char *prompt, char *buf, int buflen, int filter);
 void winsavefile(char *prompt, char *buf, int buflen, int filter);
 void winexit(void);
 void winclipstore(glui32 *text, int len);
+void wincounter(glktimeval_t *time);
 
 void fontreplace(char *font, int type);
 void fontload(void);
@@ -686,8 +704,8 @@ void win_graphics_get_size(window_t *win, glui32 *width, glui32 *height);
 void win_graphics_redraw(window_t *win);
 void win_graphics_click(window_graphics_t *dwin, int x, int y);
 
-glui32 win_graphics_draw_picture(window_graphics_t *cutwin, 
-  glui32 image, glsi32 xpos, glsi32 ypos, 
+glui32 win_graphics_draw_picture(window_graphics_t *cutwin,
+  glui32 image, glsi32 xpos, glsi32 ypos,
   int scale, glui32 imagewidth, glui32 imageheight);
 void win_graphics_erase_rect(window_graphics_t *cutwin, int whole, glsi32 xpos, glsi32 ypos, glui32 width, glui32 height);
 void win_graphics_fill_rect(window_graphics_t *cutwin, glui32 color, glsi32 xpos, glsi32 ypos, glui32 width, glui32 height);
@@ -707,6 +725,10 @@ typedef glui32 gli_case_special_t[3]; /* upper, lower, title */
 /* Each of these points to a subarray of the unigen_special_array
 (in cgunicode.c). In that subarray, element zero is the length,
 and that's followed by length unicode values. */
+
+typedef glui32 gli_decomp_block_t[2]; /* count, position */
+/* The position points to a subarray of the unigen_decomp_array.
+   If the count is zero, there is no decomposition. */
 
 void gli_putchar_utf8(glui32 val, FILE *fl);
 glui32 gli_getchar_utf8(FILE *fl);

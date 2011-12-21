@@ -13,7 +13,8 @@
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+    MA 02110-1301 USA.
  */
 
 #ifdef WIN32
@@ -604,8 +605,8 @@ word_check()
 		write_text("for more details.^^");
 		write_text("You should have received a copy of the GNU General ");
 		write_text("Public License along with this program; if not, write ");
-		write_text("to the Free Software Foundation, Inc., 675 Mass Ave, ");
-		write_text("Cambridge, MA 02139, USA.^^");
+		write_text("to the Free Software Foundation, Inc., 51 Franklin Street, ");
+		write_text("Fifth Floor, Boston, MA 02110-1301 USA.^^");
 		sprintf(temp_buffer, "OBJECTS DEFINED:   %d^", objects);
 		write_text(temp_buffer);
 		TIME->value = FALSE;
@@ -1341,7 +1342,8 @@ glk_get_bin_line_stream(file_stream, buffer, max_length)
 	while (character != -1 && index < (int) max_length) {
 		*(buffer + index) = (char) character;
 		index++;
-		if (character == (glsi32) '\n') {
+		if (character == (glsi32) '\n' ||
+            character == (glsi32) '\r') {
 			break;
 		}
 		character = glk_get_char_stream(file_stream);

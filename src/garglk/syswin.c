@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <math.h>
 #ifndef _WIN32
 #include <unistd.h>
 #else
@@ -40,7 +41,7 @@
 #include <windows.h>
 #include <commdlg.h>
 #include <shellapi.h>
-#include <mmsystem.h> 
+#include <mmsystem.h>
 
 static char *argv0;
 
@@ -58,7 +59,7 @@ static HCURSOR idc_arrow, idc_hand, idc_ibeam;
 
 static MMRESULT timer = 0;
 static int timerid = -1;
-static int timeouts = 0;
+static volatile int timeouts = 0;
 
 /* buffer for clipboard text */
 static wchar_t *cliptext = NULL;
@@ -81,7 +82,7 @@ void glk_request_timer_events(glui32 millisecs)
 		timerid = -1;
 	}
 
-    if (millisecs)
+	if (millisecs)
 	{
 		timeBeginPeriod(1);
 		timer = timeSetEvent(millisecs, 0, timeproc, 0, TIME_PERIODIC);
@@ -364,10 +365,14 @@ void winopen()
 void wintitle(void)
 {
     char buf[256];
-    if (strlen(gli_story_name))
-    sprintf(buf, "%s - %s", gli_story_name, gli_program_name);
+
+    if (strlen(gli_story_title))
+        sprintf(buf, "%s", gli_story_title);
+    else if (strlen(gli_story_name))
+        sprintf(buf, "%s - %s", gli_story_name, gli_program_name);
     else
-    sprintf(buf, "%s", gli_program_name);
+        sprintf(buf, "%s", gli_program_name);
+
     SetWindowTextA(hwndframe, buf);
 
     if (strcmp(gli_program_name, "Unknown"))
@@ -413,40 +418,19 @@ void winrepaint(int x0, int y0, int x1, int y1)
     InvalidateRect(hwndview, &wr, 1); // 0);
 }
 
-void winloop(void)
-{
-    MSG msg;
-    int i;
-
-    i = GetMessage(&msg, NULL, 0, 0);
-    if (i < 0)
-    exit(1);
-    if (i > 0)
-    {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-    }
-}
-
-void winpoll(void)
-{
-    MSG msg;
-    int i;
-
-    i = PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
-    if (i)
-    {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-    }
-}
-
 void gli_select(event_t *event, int polled)
 {
     MSG msg;
 
     gli_curevent = event;
     gli_event_clearevent(event);
+
+    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0)
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    gli_dispatch_event(gli_curevent, polled);
 
     if (!polled)
     {
@@ -462,16 +446,6 @@ void gli_select(event_t *event, int polled)
             }
             gli_dispatch_event(gli_curevent, polled);
         }
-    }
-
-    else
-    {
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0 && !timeouts)
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-        gli_dispatch_event(gli_curevent, polled);
     }
 
     if (gli_curevent->type == evtype_None && timeouts)
@@ -505,7 +479,7 @@ void winresize(void)
 
 void CALLBACK timeproc(UINT uID, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-	PostMessage(hwndframe, WM_TIMER, 0, 0);
+    PostMessage(hwndframe, WM_TIMER, 0, 0);
 }
 
 LRESULT CALLBACK
@@ -854,4 +828,26 @@ viewproc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     /* Pass on unhandled events to Windows */
     return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+/* monotonic clock time for profiling */
+void wincounter(glktimeval_t *time)
+{
+    static double gli_second_res = 0;
+    if (!gli_second_res)
+    {
+        LARGE_INTEGER res;
+        QueryPerformanceFrequency(&res);
+        gli_second_res = (double) res.QuadPart;
+    }
+
+    LARGE_INTEGER tick;
+    QueryPerformanceCounter(&tick);
+
+    double sec = (double) tick.QuadPart / gli_second_res;
+    double mic = (double) tick.QuadPart / (gli_second_res / 1000000);
+
+    time->high_sec = 0;
+    time->low_sec  = (unsigned int) sec;
+    time->microsec = (unsigned int) fmod(mic, 1000000);
 }

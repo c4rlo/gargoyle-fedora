@@ -14,7 +14,7 @@ rm -rf $dirname
 unzip -q -d $dirname $zipname
 rm $zipname
 cd $dirname
-rm -rf terps/alan2 terps/alan3 terps/hugo licenses/HUGO* \
+rm -rf terps/hugo licenses/HUGO* \
        fonts/LuxiMono* garglk/lm?.hex garglk/LuxiMono.txt licenses/LUXI* \
        support
 cd ..
