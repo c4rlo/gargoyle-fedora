@@ -2,18 +2,21 @@
 ; Gargoyle NSIS 2 installer script
 ;
 
-RequestExecutionLevel admin
-!include "MUI.nsh"
-!include FontReg.nsh
-!include FontName.nsh
-
-
 Name "Gargoyle"
-OutFile "gargoyle-2010.1-windows.exe"
+OutFile "gargoyle-2011.1-windows.exe"
 InstallDir $PROGRAMFILES\Gargoyle
 InstallDirRegKey HKLM "Software\Tor Andersson\Gargoyle\Install" "Directory"
-
 SetCompressor lzma
+
+;
+; The required plugins
+;
+
+!define MULTIUSER_EXECUTIONLEVEL Admin
+!include MultiUser.nsh
+!include MUI.nsh
+!include FontReg.nsh
+!include FontName.nsh
 
 ;
 ; The installer theme
@@ -54,6 +57,9 @@ Var SMFOLDER
 ;
 
 Section "DoInstall"
+	; Elevate rights
+    !insertmacro MULTIUSER_INIT
+
     SetOutPath $INSTDIR
 
     File "build\dist\*.exe"
@@ -78,8 +84,9 @@ Section "DoInstall"
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gargoyle" "NoModify" 1
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gargoyle" "NoRepair" 1
 
-    ; Associate file types except dat and sna because they're too generic
+    ; Associate file types except dat because it's too generic
     WriteRegStr HKCR ".l9"  "" "Gargoyle.Story"
+    WriteRegStr HKCR ".sna"  "" "Gargoyle.Story"
     WriteRegStr HKCR ".t3"  "" "Gargoyle.Story"
     WriteRegStr HKCR ".z3"  "" "Gargoyle.Story"
     WriteRegStr HKCR ".z4"  "" "Gargoyle.Story"
@@ -105,6 +112,7 @@ Section "DoInstall"
     WriteRegStr HKCR ".gblorb" "" "Gargoyle.Story"
     WriteRegStr HKCR ".zblorb" "" "Gargoyle.Story"
     WriteRegStr HKCR ".d$$$$" "" "Gargoyle.Story"
+    WriteRegStr HKCR ".saga" "" "Gargoyle.Story"
 
     WriteRegStr HKCR "Gargoyle.Story" "" "Interactive Fiction Story File"
     WriteRegStr HKCR "Gargoyle.Story\DefaultIcon" "" "$INSTDIR\gargoyle.exe,1"
@@ -145,9 +153,10 @@ SectionEnd
 ;
 
 Section "Uninstall"
+	; Elevate rights
+	!insertmacro MULTIUSER_UNINIT
 
     DeleteRegKey HKCR "Gargoyle.Story"
-
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Gargoyle"
     DeleteRegKey HKLM "Software\Tor Andersson\Gargoyle"
 

@@ -284,6 +284,8 @@ GeasGlkInterface::make_choice (std::string label, std::vector<std::string> v)
 {
     size_t n;
 
+    glk_window_clear(inputwin);
+
     glk_put_cstring(label.c_str());
     glk_put_char(0x0a);
     n = v.size();
@@ -298,7 +300,6 @@ GeasGlkInterface::make_choice (std::string label, std::vector<std::string> v)
         glk_put_cstring("\n");
     }
 
-    glk_window_clear(inputwin);
     std::stringstream t;
     std::string s;
     std::string s1;
@@ -347,7 +348,9 @@ got_choice:
 
 std::string GeasGlkInterface::absolute_name (std::string rel_name, std::string parent) const {
   std::cerr << "absolute_name ('" << rel_name << "', '" << parent << "')\n";
-  assert (parent[0] == '/');
+  if (parent[0] != '/')
+    return rel_name;
+
   if (rel_name[0] == '/')
     {
       std::cerr << "  --> " << rel_name << "\n";

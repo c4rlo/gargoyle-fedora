@@ -6,7 +6,9 @@ AdvSys is copyright (c) David Michael Betz. It is released under the terms of th
 
 AGiliTy is copyright (c) Robert Masenten. It is released under the terms of the GNU General Public License.
 
-Alan is copyright (c) Thomas Nilsson.
+Alan is copyright (c) Thomas Nilsson. It is released under the terms of the Artistic License 2.0.
+
+Bocfel is copyright (c) Chris Spiegel. It is released under the terms of the GNU General Public License.
 
 Frotz is copyright (c) Stefan Jokisch. It is released under the terms of the GNU General Public License.
 
@@ -27,6 +29,8 @@ Magnetic is copyright (c) Niclas Karlsson, David Kinder, Stefan Meier and Paul D
 Nitfol is copyright (c) Evin Robertson. It is released under the terms of the GNU General Public License.
 
 SCARE is copyright (c) Simon Baldwin. It is released under the terms of the GNU General Public License.
+
+ScottFree is copyright (c) Alan Cox. It is released under the terms of the GNU General Public License.
 
 TADS is copyright (c) Michael J. Roberts. It is released under the terms of the GNU General Public License.
 

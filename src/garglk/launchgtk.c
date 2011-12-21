@@ -39,7 +39,7 @@ char tmp[MaxBuffer];
 
 char *filterlist[] =
 {
-"All Games|*.taf;*.agx;*.d[0-9][0-9];*.acd;*.a3c;*.asl;*.cas;*.ulx;*.hex;*.jacl;*.j2;*.gam;*.t3;*.z?;*.l9;*.sna;*.mag;*.dat;*.blb;*.glb;*.zlb;*.blorb;*.gblorb;*.zblorb",
+"All Games|*.taf;*.agx;*.d[0-9][0-9];*.acd;*.a3c;*.asl;*.cas;*.ulx;*.hex;*.jacl;*.j2;*.gam;*.t3;*.z?;*.l9;*.sna;*.mag;*.dat;*.saga;*.blb;*.glb;*.zlb;*.blorb;*.gblorb;*.zblorb",
 "Adrift Games (*.taf)|*.taf",
 "AdvSys Games (*.dat)|*.dat",
 "AGT Games (*.agx)|*.agx;*.d[0-9][0-9]",
@@ -50,6 +50,7 @@ char *filterlist[] =
 "Level 9 (*.l9)|*.l9;*.sna",
 "Magnetic Scrolls (*.mag)|*.mag",
 "Quest Games (*.asl,*.cas)|*.asl;*.cas",
+"Scott Adams Grand Adventures (*.saga)|*saga",
 "TADS 2 Games (*.gam)|*.gam;*.t3",
 "TADS 3 Games (*.t3)|*.gam;*.t3",
 "Z-code Games (*.z?)|*.z[0-9];*.zlb;*.zblorb",
@@ -130,7 +131,9 @@ void winbrowsefile(char *buffer)
                                                       GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
                                                       NULL);
 
-    if (getenv("HOME"))
+    if (getenv("GAMES"))
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(openDlg), getenv("GAMES"));
+    else if (getenv("HOME"))
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(openDlg), getenv("HOME"));
 
     winfilterfiles(GTK_FILE_CHOOSER(openDlg));
@@ -151,7 +154,8 @@ void winpath(char *buffer)
 
     exelen = readlink("/proc/self/exe", exepath, sizeof(exepath));
 
-    if (exelen <= 0 || exelen >= MaxBuffer) {
+    if (exelen <= 0 || exelen >= MaxBuffer)
+    {
         winmsg("Unable to locate executable path");
         exit(EXIT_FAILURE);
     }
@@ -162,7 +166,7 @@ void winpath(char *buffer)
     if ( dirpos != NULL )
         *dirpos = '\0';
 
-   return;
+    return;
 }
 
 int winexec(const char *cmd, char **args)
@@ -176,7 +180,7 @@ int winterp(char *path, char *exe, char *flags, char *game)
 
     setenv("GARGLK_INI", path, FALSE);
 
-    char *args[] = {NULL, NULL, NULL};
+    char *args[4] = {NULL, NULL, NULL, NULL};
 
     if (strstr(flags, "-"))
     {
@@ -190,7 +194,8 @@ int winterp(char *path, char *exe, char *flags, char *game)
         args[1] = buf;
     }
 
-    if (!winexec(tmp, args)) {
+    if (!winexec(tmp, args))
+    {
         winmsg("Could not start 'terp.\nSorry.");
         return FALSE;
     }

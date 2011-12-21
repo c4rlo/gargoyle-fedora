@@ -1,6 +1,7 @@
 /******************************************************************************
  *                                                                            *
  * Copyright (C) 2006-2009 by Tor Andersson.                                  *
+ * Copyright (C) 2010-2011 by Ben Cressey.                                    *
  *                                                                            *
  * This file is part of Gargoyle.                                             *
  *                                                                            *
@@ -22,6 +23,8 @@
 
 /* osglk.c -- glk os adapter */
 
+#include <assert.h>
+
 #include "os.h"
 #include "glk.h"
 
@@ -31,10 +34,12 @@
 
 static inline int max(int a, int b)
 {
-	return a > b ? a : b;
+    return a > b ? a : b;
 }
 
-static void redrawstatus(void);
+static void redraw_windows(void);
+static void os_status_redraw(void);
+extern void os_banners_redraw(void);
 
 static char lbuf[256], rbuf[256];
 static int curwin = 0;
@@ -42,6 +47,13 @@ static int curattr = 0;
 
 winid_t mainwin;
 winid_t statuswin;
+
+glui32 mainfg;
+glui32 mainbg;
+
+glui32 statusfg;
+glui32 statusbg;
+
 
 /* ------------------------------------------------------------------------ */
 /*
@@ -54,47 +66,62 @@ winid_t statuswin;
  */
 int os_get_sysinfo(int code, void *param, long *result)
 {
-	switch (code)
-	{
-		case SYSINFO_TEXT_HILITE:
-			*result = 1;	
-			return TRUE;
-		case SYSINFO_INTERP_CLASS:
-			*result = SYSINFO_ICLASS_TEXTGUI;
-			return TRUE;
-		case SYSINFO_BANNERS:
-			*result = 0;	/* as if anyone actually listens... */
-			return TRUE;
+    switch (code)
+    {
+        case SYSINFO_TEXT_HILITE:
+            *result = 1;
+            return TRUE;
+        case SYSINFO_BANNERS:
+            *result = 1;
+            return TRUE;
+        case SYSINFO_TEXT_COLORS:
+            *result = SYSINFO_TXC_RGB;
+            return TRUE;
 
-		case SYSINFO_HTML:
-		case SYSINFO_JPEG:
-		case SYSINFO_PNG:
-		case SYSINFO_WAV:
-		case SYSINFO_MIDI:
-		case SYSINFO_WAV_MIDI_OVL:
-		case SYSINFO_WAV_OVL:
-		case SYSINFO_PREF_IMAGES:
-		case SYSINFO_PREF_SOUNDS:
-		case SYSINFO_PREF_MUSIC:
-		case SYSINFO_PREF_LINKS:
-		case SYSINFO_MPEG:
-		case SYSINFO_MPEG1:
-		case SYSINFO_MPEG2:
-		case SYSINFO_MPEG3:
-		case SYSINFO_LINKS_HTTP:
-		case SYSINFO_LINKS_FTP:
-		case SYSINFO_LINKS_NEWS:
-		case SYSINFO_LINKS_MAILTO:
-		case SYSINFO_LINKS_TELNET:
-		case SYSINFO_PNG_TRANS:
-		case SYSINFO_PNG_ALPHA:
-		case SYSINFO_OGG:
-			*result = 0;
-			return TRUE;
+#ifdef USE_HTML
+        case SYSINFO_INTERP_CLASS:
+            *result = SYSINFO_ICLASS_HTML;
+            return TRUE;
+        case SYSINFO_HTML:
+            *result = 1;
+            return TRUE;
+#else
+        case SYSINFO_INTERP_CLASS:
+            *result = SYSINFO_ICLASS_TEXTGUI;
+            return TRUE;
+        case SYSINFO_HTML:
+            *result = 0;
+            return TRUE;
+#endif
 
-		default:
-			return FALSE;
-	}
+        case SYSINFO_JPEG:
+        case SYSINFO_PNG:
+        case SYSINFO_WAV:
+        case SYSINFO_MIDI:
+        case SYSINFO_WAV_MIDI_OVL:
+        case SYSINFO_WAV_OVL:
+        case SYSINFO_PREF_IMAGES:
+        case SYSINFO_PREF_SOUNDS:
+        case SYSINFO_PREF_MUSIC:
+        case SYSINFO_PREF_LINKS:
+        case SYSINFO_MPEG:
+        case SYSINFO_MPEG1:
+        case SYSINFO_MPEG2:
+        case SYSINFO_MPEG3:
+        case SYSINFO_LINKS_HTTP:
+        case SYSINFO_LINKS_FTP:
+        case SYSINFO_LINKS_NEWS:
+        case SYSINFO_LINKS_MAILTO:
+        case SYSINFO_LINKS_TELNET:
+        case SYSINFO_PNG_TRANS:
+        case SYSINFO_PNG_ALPHA:
+        case SYSINFO_OGG:
+            *result = 0;
+            return TRUE;
+
+        default:
+            return FALSE;
+    }
 }
 
 
@@ -116,26 +143,47 @@ int os_get_sysinfo(int code, void *param, long *result)
 int os_init(int *argc, char *argv[], const char *prompt,
             char *buf, int bufsiz)
 {
-	mainwin = glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
-	if (!mainwin)
-	{
-		fprintf(stderr, "fatal: could not open window!\n");
-		glk_exit();
-	}
+    mainwin = glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
 
-	statuswin = NULL;
+    if (!mainwin)
+    {
+        fprintf(stderr, "fatal: could not open window!\n");
+        glk_exit();
+    }
 
-	glk_set_window(mainwin);
+    /* get default colors for main window */
+    if (!glk_style_measure(mainwin, style_Normal, stylehint_TextColor, &mainfg))
+        mainfg = 0;
 
-	strcat(lbuf, "");
-	strcat(rbuf, "");
+    if (!glk_style_measure(mainwin, style_Normal, stylehint_BackColor, &mainbg))
+        mainbg = 0;
 
-	return 0;
+    /* get default colors for status window */
+    statuswin = glk_window_open(mainwin,
+            winmethod_Above | winmethod_Fixed, 1,
+            wintype_TextGrid, 0);
+
+    if (!glk_style_measure(statuswin, style_Normal, stylehint_TextColor, &statusfg))
+        statusfg = 0;
+
+    if (!glk_style_measure(statuswin, style_Normal, stylehint_BackColor, &statusbg))
+        statusbg = 0;
+
+    /* close statuswin; reopened on request */
+    glk_window_close(statuswin, 0);
+
+    statuswin = NULL;
+
+    glk_set_window(mainwin);
+
+    strcpy(rbuf, "");
+
+    return 0;
 }
 
 void os_term(int status)
 {
-	glk_exit();
+    glk_exit();
 }
 
 /* ------------------------------------------------------------------------ */
@@ -210,30 +258,28 @@ void os_printz(const char *str)
 
 void os_print(const char *str, size_t len)
 {
-    if (curwin == 0)
-	{
-		while (*str)
-			glk_put_char((unsigned char)*str++);
-	}
-	if (curwin == 1)
-	{
-		const char *p;
-		size_t      rem;
+    if (curwin == 0 && str)
+        os_put_buffer((unsigned char *)str, len);
 
-		/* The string requires some fiddling for the status window */
-		for (p = str, rem = len ; rem != 0 && *p == '\n'; p++, --rem)
-			;
-		if (rem != 0 && p[rem-1] == '\n')
-			--rem;
+    if (curwin == 1)
+    {
+        const char *p;
+        size_t      rem, max;
 
-		/* if that leaves anything, update the statusline */
-		if (rem != 0)
-		{
-			memcpy(lbuf, p, max(rem, sizeof(lbuf) - 1));
-			lbuf[rem] = 0;
-			redrawstatus();
-		}
-	}
+        /* The string requires some fiddling for the status window */
+        for (p = str, rem = len ; rem != 0 && *p == '\n'; p++, --rem)
+            ;
+        if (rem != 0 && p[rem-1] == '\n')
+            --rem;
+
+        /* if that leaves anything, update the statusline */
+        if (rem != 0)
+        {
+            max = sizeof(lbuf) - strlen(lbuf) - 1;
+            strncat(lbuf, p, rem > max ? max : rem);
+            os_status_redraw();
+        }
+    }
 }
 
 
@@ -261,13 +307,17 @@ void os_status(int stat)
 {
     curwin = stat;
 
-	if (stat == 1 && statuswin == NULL)
-	{
-		glk_stylehint_set(wintype_TextGrid, style_User1, stylehint_ReverseColor, 1);
-		statuswin = glk_window_open(mainwin,
-			winmethod_Above | winmethod_Fixed, 1,
-			wintype_TextGrid, 0);
-	}
+    if (stat == 1)
+    {
+        if (statuswin == NULL)
+        {
+            glk_stylehint_set(wintype_TextGrid, style_User1, stylehint_ReverseColor, 1);
+            statuswin = glk_window_open(mainwin,
+                                        winmethod_Above | winmethod_Fixed, 1,
+                                        wintype_TextGrid, 0);
+        }
+        strcpy(lbuf, "");
+    }
 }
 
 /* get the status line mode */
@@ -294,32 +344,38 @@ void os_score(int score, int turncount)
 /* display a string in the score area in the status line */
 void os_strsc(const char *p)
 {
-	snprintf(rbuf, sizeof rbuf, "%s", p);
-	redrawstatus();
+    snprintf(rbuf, sizeof rbuf, "%s", p);
+    os_status_redraw();
 }
 
-static void redrawstatus(void)
+static void os_status_redraw(void)
 {
-	char fmt[32];
-	char buf[256];
-	glui32 wid;
-	glui32 div;
-	int i;
+    char fmt[32];
+    char buf[256];
+    glui32 wid;
+    glui32 div;
+    int i;
 
-	if (!statuswin)
-		return;
+    if (!statuswin)
+        return;
 
-	glk_window_get_size(statuswin, &wid, NULL);
-	div = wid - strlen(rbuf) - 3;
+    glk_window_get_size(statuswin, &wid, NULL);
+    div = wid - strlen(rbuf) - 3;
 
-	sprintf(fmt, " %%%ds %%s ", - (int)div);
-	sprintf(buf, fmt, lbuf, rbuf);
+    sprintf(fmt, " %%%ds %%s ", - (int)div);
+    sprintf(buf, fmt, lbuf, rbuf);
 
-	glk_window_clear(statuswin);
-	glk_set_window(statuswin);
-	glk_set_style(style_User1);
-	glk_put_string(buf);
-	glk_set_window(mainwin);
+    glk_window_clear(statuswin);
+    glk_set_window(statuswin);
+    glk_set_style(style_User1);
+    os_put_buffer(buf, strlen(buf));
+    glk_set_window(mainwin);
+}
+
+static void redraw_windows(void)
+{
+    os_status_redraw();
+    os_banners_redraw();
 }
 
 /* clear the screen */
@@ -339,14 +395,14 @@ void oscls(void)
 void os_set_text_attr(int attr)
 {
     curattr = attr;
-	if (curattr & OS_ATTR_BOLD && curattr & OS_ATTR_ITALIC)
-		glk_set_style(style_Alert);
-	else if (curattr & OS_ATTR_BOLD)
-		glk_set_style(style_Subheader);
-	else if (curattr & OS_ATTR_ITALIC)
-		glk_set_style(style_Emphasized);
-	else
-		glk_set_style(style_Normal);
+    if (curattr & OS_ATTR_BOLD && curattr & OS_ATTR_ITALIC)
+        glk_set_style(style_Alert);
+    else if (curattr & OS_ATTR_BOLD)
+        glk_set_style(style_Subheader);
+    else if (curattr & OS_ATTR_ITALIC)
+        glk_set_style(style_Emphasized);
+    else
+        glk_set_style(style_Normal);
 }
 
 /*
@@ -401,7 +457,7 @@ void os_set_screen_color(os_color_t color)
 void os_set_title(const char *title)
 {
 #ifdef GARGLK
-//	garglk_set_story_name(title);
+    garglk_set_story_title(title);
 #endif
 }
 
@@ -425,8 +481,8 @@ void os_set_title(const char *title)
  */
 void os_more_prompt()
 {
-	os_printz("\n[more]\n");
-	os_waitc();
+    os_printz("\n[more]\n");
+    os_waitc();
 }
 
 /* ------------------------------------------------------------------------ */
@@ -454,30 +510,30 @@ void os_more_prompt()
 int os_askfile(const char *prompt, char *fname_buf, int fname_buf_len,
                int prompt_type, os_filetype_t file_type)
 {
-	frefid_t fileref;
-	glui32 gprompt, gusage;
+    frefid_t fileref;
+    glui32 gprompt, gusage;
 
-	if (prompt_type == OS_AFP_OPEN)
-		gprompt = filemode_Read;
-	else
-		gprompt = filemode_ReadWrite;
+    if (prompt_type == OS_AFP_OPEN)
+        gprompt = filemode_Read;
+    else
+        gprompt = filemode_ReadWrite;
 
-	if (file_type == OSFTSAVE || file_type == OSFTT3SAV)
-		gusage = fileusage_SavedGame;
-	else if (file_type == OSFTLOG || file_type == OSFTTEXT)
-		gusage = fileusage_Transcript;
-	else
-		gusage = fileusage_Data;
+    if (file_type == OSFTSAVE || file_type == OSFTT3SAV)
+        gusage = fileusage_SavedGame;
+    else if (file_type == OSFTLOG || file_type == OSFTTEXT)
+        gusage = fileusage_Transcript;
+    else
+        gusage = fileusage_Data;
 
-	fileref = glk_fileref_create_by_prompt(gusage, gprompt, 0);
-	if (fileref == NULL)
-		return OS_AFE_CANCEL;
+    fileref = glk_fileref_create_by_prompt(gusage, gprompt, 0);
+    if (fileref == NULL)
+        return OS_AFE_CANCEL;
 
-	strcpy(fname_buf, garglk_fileref_get_name(fileref));
+    strcpy(fname_buf, garglk_fileref_get_name(fileref));
 
-	glk_fileref_destroy(fileref);
+    glk_fileref_destroy(fileref);
 
-	return OS_AFE_SUCCESS;
+    return OS_AFE_SUCCESS;
 }
 
 /* 
@@ -489,20 +545,19 @@ int os_askfile(const char *prompt, char *fname_buf, int fname_buf_len,
  */
 unsigned char *os_gets(unsigned char *buf, size_t buflen)
 {
-	event_t event;
+    event_t event;
 
-	glk_request_line_event(mainwin, buf, buflen - 1, 0);
+    os_get_buffer(buf, buflen, 0);
 
-	do
-	{
-		glk_select(&event);
-		if (event.type == evtype_Arrange)
-			redrawstatus();
-	} while (event.type != evtype_LineInput);
+    do
+    {
+        glk_select(&event);
+        if (event.type == evtype_Arrange)
+            redraw_windows();
+    }
+    while (event.type != evtype_LineInput);
 
-	buf[event.val1] = 0;
-
-	return buf;
+    return os_fill_buffer(buf, event.val1);
 }
 
 /*
@@ -579,13 +634,79 @@ unsigned char *os_gets(unsigned char *buf, size_t buflen)
  *   routine with use_timeout==FALSE.  The regular os_gets() would not
  *   satisfy this need, because it cannot resume an interrupted input.)  
  */
+static char * timebuf = NULL;
+static size_t timelen = 0;
+
 int os_gets_timeout(unsigned char *buf, size_t bufl,
                     unsigned long timeout_in_milliseconds, int use_timeout)
 {
-	if (use_timeout)
-		return OS_EVT_TIMEOUT;
-	else
-		return os_gets(buf, bufl) == 0 ? OS_EVT_EOF : OS_EVT_LINE;
+#if defined GLK_TIMERS && defined GLK_MODULE_LINE_ECHO
+    int timer = use_timeout ? timeout_in_milliseconds : 0;
+    int timeout = 0;
+    int initlen = 0;
+    event_t event;
+
+    /* restore saved buffer contents */
+    if (timebuf)
+    {
+        assert(timelen && timelen <= bufl);
+        memcpy(buf, timebuf, timelen);
+        initlen = timelen - 1;
+        buf[initlen] = 0;
+        free(timebuf);
+        timebuf = 0;
+    }
+
+    /* start timer and turn off line echo */
+    if (timer)
+    {
+        glk_request_timer_events(timer);
+        glk_set_echo_line_event(mainwin, 0);
+    }
+
+    os_get_buffer(buf, bufl, initlen);
+
+    do
+    {
+        glk_select(&event);
+        if (event.type == evtype_Arrange)
+            redraw_windows();
+        else if (event.type == evtype_Timer && (timeout = 1))
+            glk_cancel_line_event(mainwin, &event);
+    }
+    while (event.type != evtype_LineInput);
+
+    char *res = os_fill_buffer(buf, event.val1);
+
+    /* stop timer and turn on line echo */
+    if (timer)
+    {
+        glk_request_timer_events(0);
+        glk_set_echo_line_event(mainwin, 1);
+    }
+
+    /* save or print buffer contents */
+    if (res && timer)
+    {
+        if (timeout)
+        {
+            timelen = strlen(buf) + 1;
+            timebuf = malloc(timelen);
+            memcpy(timebuf, buf, timelen);
+        }
+        else
+        {
+            glk_set_style(style_Input);
+            os_print(buf, strlen(buf));
+            os_print("\n", 1);
+            glk_set_style(style_Normal);
+        }
+    }
+
+    return timeout ? OS_EVT_TIMEOUT : res ? OS_EVT_LINE : OS_EVT_EOF;
+#else
+    return OS_EVT_NOTIMEOUT;
+#endif
 }
 
 /*
@@ -611,6 +732,21 @@ int os_gets_timeout(unsigned char *buf, size_t bufl,
  */
 void os_gets_cancel(int reset)
 {
+#if defined GLK_TIMERS && defined GLK_MODULE_LINE_ECHO
+    if (timebuf)
+    {
+        glk_set_style(style_Input);
+        os_print(timebuf, strlen(timebuf));
+        os_print("\n", 1);
+        glk_set_style(style_Normal);
+
+        if (reset)
+        {
+            free(timebuf);
+            timebuf = 0;
+        }
+    }
+#endif
 }
 
 /* 
@@ -634,99 +770,107 @@ void os_gets_cancel(int reset)
  *   The translation ability of this function allows for system-dependent
  *   key mappings to functional meanings.  
  */
-
-static int glktotads(int key)
+static int glktotads(unsigned int key)
 {
-	if (key < 256)
-		return key;
-	switch (key)
-	{
-		case keycode_Up:
-			return CMD_UP;
-		case keycode_Down:
-			return CMD_DOWN;
-		case keycode_Left:
-			return CMD_LEFT;
-		case keycode_Right:
-			return CMD_RIGHT;
-		case keycode_PageUp:
-			return CMD_PGUP;
-		case keycode_PageDown:
-			return CMD_PGDN;
-		case keycode_Home:
-			return CMD_HOME;
-		case keycode_End:
-			return CMD_END;
-		case keycode_Func1:
-			return CMD_F1;
-		case keycode_Func2:
-			return CMD_F2;
-		case keycode_Func3:
-			return CMD_F3;
-		case keycode_Func4:
-			return CMD_F4;
-		case keycode_Func5:
-			return CMD_F5;
-		case keycode_Func6:
-			return CMD_F6;
-		case keycode_Func7:
-			return CMD_F7;
-		case keycode_Func8:
-			return CMD_F8;
-		case keycode_Func9:
-			return CMD_F9;
-		case keycode_Func10:
-			return CMD_F10;
-		default:
-			return 0;
-	}	
+    if (key < 256)
+        return key;
+    switch (key)
+    {
+        case keycode_Up:
+            return CMD_UP;
+        case keycode_Down:
+            return CMD_DOWN;
+        case keycode_Left:
+            return CMD_LEFT;
+        case keycode_Right:
+            return CMD_RIGHT;
+        case keycode_PageUp:
+            return CMD_PGUP;
+        case keycode_PageDown:
+            return CMD_PGDN;
+        case keycode_Home:
+            return CMD_HOME;
+        case keycode_End:
+            return CMD_END;
+        case keycode_Func1:
+            return CMD_F1;
+        case keycode_Func2:
+            return CMD_F2;
+        case keycode_Func3:
+            return CMD_F3;
+        case keycode_Func4:
+            return CMD_F4;
+        case keycode_Func5:
+            return CMD_F5;
+        case keycode_Func6:
+            return CMD_F6;
+        case keycode_Func7:
+            return CMD_F7;
+        case keycode_Func8:
+            return CMD_F8;
+        case keycode_Func9:
+            return CMD_F9;
+        case keycode_Func10:
+            return CMD_F10;
+        default:
+            return 0;
+    }
 }
+
+static int bufchar = 0;
+static int waitchar = 0;
+static int timechar = 0;
 
 static int getglkchar(void)
 {
-	event_t event;
+    event_t event;
 
-	glk_request_char_event(mainwin);
+    timechar = 0;
 
-	do
-	{
-		glk_select(&event);
-		if (event.type == evtype_Arrange)
-			redrawstatus();
-	} while (event.type != evtype_CharInput);
+    glk_request_char_event(mainwin);
 
-	/* TODO: turn keycode_ into CMD_ */
+    do
+    {
+        glk_select(&event);
+        if (event.type == evtype_Arrange)
+            redraw_windows();
+        else if (event.type == evtype_Timer)
+            timechar = 1;
+    }
+    while (event.type != evtype_CharInput && event.type != evtype_Timer);
 
-	return event.val1;
+    glk_cancel_char_event(mainwin);
+
+    return timechar ? 0 : event.val1;
 }
 
 int os_getc(void)
 {
-	static int bufchar = 0;
-	int c;
+    unsigned int c;
 
-	if (bufchar)
-	{
-		c = bufchar;
-		bufchar = 0;
-		return c;
-	}
+    if (bufchar)
+    {
+        c = bufchar;
+        bufchar = 0;
+        return c;
+    }
 
-	c = getglkchar();
+    c = waitchar ? waitchar : getglkchar();
+    waitchar = 0;
 
-	if (c == keycode_Return)
-		c = '\n';
-	if (c == keycode_Tab)
-		c = '\t';
-	if (c == keycode_Escape)
-		c = '\e';
+    if (c == keycode_Return)
+        c = '\n';
+    else if (c == keycode_Tab)
+        c = '\t';
+    else if (c == keycode_Escape)
+        c = '\e';
 
-	if (c < 256)
-		return c;
+    if (c < 256)
+        return c;
 
-	bufchar = glktotads(c);
+    bufchar = glktotads(c);
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -758,13 +902,13 @@ int os_getc(void)
  */
 int os_getc_raw(void)
 {
-	return os_getc();
+    return os_getc();
 }
 
 /* wait for a character to become available from the keyboard */
 void os_waitc(void)
 {
-	os_getc();
+    waitchar = getglkchar();
 }
 
 /*
@@ -784,16 +928,29 @@ void os_waitc(void)
 int os_get_event(unsigned long timeout_in_milliseconds, int use_timeout,
                  os_event_info_t *info)
 {
+#ifdef GLK_TIMERS
+    /* start timer */
+    int timer = use_timeout ? timeout_in_milliseconds : 0;
+    if (timer)
+        glk_request_timer_events(timer);
+#else
     /* we can't handle timeouts */
     if (use_timeout)
         return OS_EVT_NOTIMEOUT;
+#endif
 
     /* get a key */
     info->key[0] = os_getc_raw();
-    if (info->key[0] == 0)
+    if (info->key[0] == 0 && timechar == 0)
         info->key[1] = os_getc_raw();
 
-    /* return the keyboard event */
-    return OS_EVT_KEY;
+#ifdef GLK_TIMERS
+    /* stop timer */
+    if (timer)
+        glk_request_timer_events(0);
+#endif
+
+    /* return the event */
+    return timechar ? OS_EVT_TIMEOUT : OS_EVT_KEY;
 }
 
