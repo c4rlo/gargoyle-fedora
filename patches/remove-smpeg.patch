@@ -7,11 +7,11 @@ without support for smpeg (as well as without its more limited built-in MP3
 support). So we end up without MP3 support. This is not a big deal since
 very few games use sound at all.
 
-Index: gargoyle/src/Jamrules
+Index: gargoyle-fedora/src/Jamrules
 ===================================================================
---- gargoyle.orig/src/Jamrules
-+++ gargoyle/src/Jamrules
-@@ -65,7 +65,7 @@ switch $(OS)
+--- gargoyle-fedora.orig/src/Jamrules
++++ gargoyle-fedora/src/Jamrules
+@@ -94,7 +94,7 @@ switch $(OS)
          if $(USESDL) = yes
          {
              GARGLKCCFLAGS += -I/usr/include/SDL ;

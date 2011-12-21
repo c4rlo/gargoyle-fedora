@@ -4,18 +4,6 @@ copied from Debian's gargoyle-free.copyright file)
 In order to have a completely free source tarball, the following directories and files were
 removed to create the tarball from which this package is built:
 
-  - terps/alan2/: non-free license (need to register and cannot modify
-    without author's permission), check
-    http://www.alanif.se/uploads/v2download/alanmanual28.pdf
-    section J.5
-
-  - terps/alan3/: non-free license (need to register and cannot modify
-    without author's permission), check
-    http://www.alanif.se/uploads/download/manual.pdf section L.5.
-
-  Note: the license for the Alan interpreter may change in the near
-  future).
-
   - terps/hugo, licenses/HUGO License.txt: non-free license
     (non-commercial use only and cannot modify the source code), it's
     displayed in the Windows installer available at

@@ -1,11 +1,11 @@
 In Fedora, the Linux Libertine font (packaged as linux-libertine-fonts, on which
 we depend) is known as Linux Libertine.
 
-Index: gargoyle/src/garglk/garglk.ini
+Index: gargoyle-fedora/src/garglk/garglk.ini
 ===================================================================
---- gargoyle.orig/src/garglk/garglk.ini
-+++ gargoyle/src/garglk/garglk.ini
-@@ -51,7 +51,7 @@ lcd           1               # 0=graysc
+--- gargoyle-fedora.orig/src/garglk/garglk.ini
++++ gargoyle-fedora/src/garglk/garglk.ini
+@@ -52,7 +52,7 @@ lcd           1               # 0=graysc
  monofont      Liberation Mono
  monosize      12.5
  

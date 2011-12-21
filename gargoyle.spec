@@ -1,6 +1,6 @@
 Name:           gargoyle
-Version:        2010.1
-Release:        4%{?dist}
+Version:        2011.1
+Release:        1%{?dist}
 Summary:        Interactive fiction interpreter with excellent text rendering
 
 Group:          Amusements/Games
@@ -9,22 +9,18 @@ Group:          Amusements/Games
 License:        GPLv2 and GPLv2+ and BSD and MIT and Glulxe
 URL:            http://ccxvii.net/gargoyle/
 # This is not the upstream source zip file because it contains non-free code.
-# Original download URL: http://garglk.googlecode.com/files/gargoyle-2010.1-sources.zip
+# Original download URL: http://garglk.googlecode.com/files/gargoyle-2011.1-sources.zip
 # To go from upstream sources to the tarball we use, run generate-tarball.sh
 # (included only for informational purposes, not used or installed)
-Source0:        gargoyle-2010.1.tar.bz2
+Source0:        gargoyle-2011.1.tar.bz2
 Source1:        gargoyle.6
 Source2:        README.fedora
 Source3:        generate-tarball.sh
 Patch0:         support-dir-not-needed.patch
-Patch1:         fix-build.patch
-Patch2:         apply-optflags.patch
-Patch3:         remove-smpeg.patch
-Patch4:         fix-desktop-file.patch
-Patch5:         remove-Alan.patch
-Patch6:         remove-Hugo.patch
-Patch7:         remove-luximono-font.patch
-Patch8:         fix-font-config.patch
+Patch1:         remove-smpeg.patch
+Patch2:         remove-Hugo.patch
+Patch3:         remove-luximono-font.patch
+Patch4:         fix-font-config.patch
 
 BuildRequires:  jam,SDL-devel,SDL_sound-devel,SDL_mixer-devel,gtk2-devel,freetype-devel,libjpeg-turbo-devel,desktop-file-utils
 Requires:       linux-libertine-fonts,liberation-mono-fonts
@@ -36,8 +32,7 @@ rendering.
 
 See http://ifdb.tads.org/ and http://www.ifarchive.org/ for many free works.
 
-This package excludes the Alan 2, Alan 3 and Hugo interpreters due to licensing
-restrictions.
+This package excludes the Hugo interpreter due to licensing restrictions.
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -46,13 +41,8 @@ restrictions.
 %patch2 -p2
 %patch3 -p2
 %patch4 -p2
-%patch5 -p2
-%patch6 -p2
-%patch7 -p2
-%patch8 -p2
 
 %build
-sed -i "s/_OPTFLAGS_/%{optflags}/" Jamrules
 jam
 
 %install
@@ -98,6 +88,10 @@ desktop-file-install \
 %doc License.txt README.fedora
 
 %changelog
+* Wed Dec 21 2001 Carlo Teubner <carlo.teubner@gmail.com> 2011.1-1
+- New upstream version 2011.1
+- No longer need to exclude the Alan interpreters
+- Repackage for Fedora 16
 * Sat Jul 02 2011 Carlo Teubner <carlo.teubner@gmail.com> 2010.1-4
 - Repackage for Fedora 15
 - Fix permissions on generate-tarball.sh

@@ -6,7 +6,7 @@
 # files, resulting in the compressed tar file that we use as a starting point
 # for our RPM.
 
-version=2010.1
+version=2011.1
 
 name=gargoyle-$version
 url=http://garglk.googlecode.com/files/$name-sources.zip
@@ -39,7 +39,7 @@ rm $zipname
 
 echo "Removing unneeded files"
 cd $name
-rm -rf terps/alan2 terps/alan3 terps/hugo licenses/HUGO* \
+rm -rf terps/hugo licenses/HUGO* \
        fonts/LuxiMono* garglk/lm?.hex garglk/LuxiMono.txt licenses/LUXI* \
        support
 cd ..
