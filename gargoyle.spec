@@ -6,7 +6,7 @@ Summary:        Interactive fiction interpreter with excellent text rendering
 Group:          Amusements/Games
 # As Gargoyle contains several bundled interpreters, we end up with multiple licenses.
 # See License.txt for an overview.
-License:        GPLv2 and GPLv2+ and BSD and MIT and Glulxe
+License:        GPLv2 and GPLv2+ and BSD and MIT and Artistic 2.0 and Glulxe
 URL:            http://ccxvii.net/gargoyle/
 # This is not the upstream source zip file because it contains non-free code.
 # Original download URL: http://garglk.googlecode.com/files/gargoyle-2011.1-sources.zip
@@ -16,11 +16,10 @@ Source0:        gargoyle-2011.1.tar.bz2
 Source1:        gargoyle.6
 Source2:        README.fedora
 Source3:        generate-tarball.sh
-Patch0:         support-dir-not-needed.patch
-Patch1:         remove-smpeg.patch
-Patch2:         remove-Hugo.patch
-Patch3:         remove-luximono-font.patch
-Patch4:         fix-font-config.patch
+Patch0:         remove-smpeg.patch
+Patch1:         remove-Hugo.patch
+Patch2:         remove-luximono-font.patch
+Patch3:         fix-font-config.patch
 
 BuildRequires:  jam,SDL-devel,SDL_sound-devel,SDL_mixer-devel,gtk2-devel,freetype-devel,libjpeg-turbo-devel,desktop-file-utils
 Requires:       linux-libertine-fonts,liberation-mono-fonts
@@ -40,10 +39,9 @@ This package excludes the Hugo interpreter due to licensing restrictions.
 %patch1 -p2
 %patch2 -p2
 %patch3 -p2
-%patch4 -p2
 
 %build
-jam
+jam -s CFLAGS="%{optflags}"
 
 %install
 rm -rf %{buildroot}
@@ -88,7 +86,7 @@ desktop-file-install \
 %doc License.txt README.fedora
 
 %changelog
-* Wed Dec 21 2001 Carlo Teubner <carlo.teubner@gmail.com> 2011.1-1
+* Wed Dec 21 2011 Carlo Teubner <carlo.teubner@gmail.com> 2011.1-1
 - New upstream version 2011.1
 - No longer need to exclude the Alan interpreters
 - Repackage for Fedora 16

@@ -30,20 +30,21 @@ elif which curl >/dev/null; [[ $? != 0 ]]; then
     exit 2
 else
     echo "Downloading sources from $url"
-    curl -o $zipname $url
+    curl -o $zipname $url || exit 1
 fi
 
 echo "Unzipping"
-unzip -q -d $name $zipname
+unzip -q -d $name $zipname || exit 1
 rm $zipname
 
 echo "Removing unneeded files"
 cd $name
 rm -rf terps/hugo licenses/HUGO* \
-       fonts/LuxiMono* garglk/lm?.hex garglk/LuxiMono.txt licenses/LUXI* \
-       support
-cd ..
+       fonts/LuxiMono* garglk/lm?.hex garglk/LuxiMono.txt licenses/LUXI*
+cd support
+rm -rf dylibs freetype iplinux libjpeg libpng sdl sdl_sound zlib
+cd ../..
 
 echo "Compressing"
-tar -cjf $tarname $name
+tar -cjf $tarname $name || exit 1
 rm -rf $name

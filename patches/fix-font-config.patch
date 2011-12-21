@@ -14,3 +14,16 @@ Index: gargoyle-fedora/src/garglk/garglk.ini
  propsize      15.5
  
  wmarginx      20              # space around the window frame
+Index: gargoyle-fedora/src/garglk/config.c
+===================================================================
+--- gargoyle-fedora.orig/src/garglk/config.c
++++ gargoyle-fedora/src/garglk/config.c
+@@ -54,7 +54,7 @@ float gli_conf_monosize = 12.6;	/* good
+ float gli_conf_propsize = 14.7;	/* good size for CharterBT */
+ #else
+ char *gli_conf_monofont = "Liberation Mono";
+-char *gli_conf_propfont = "Linux Libertine O";
++char *gli_conf_propfont = "Linux Libertine";
+ float gli_conf_monosize = 12.5;	/* good size for LiberationMono */
+ float gli_conf_propsize = 15.5;	/* good size for Libertine */
+ #endif
