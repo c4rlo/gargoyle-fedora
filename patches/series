@@ -2,3 +2,4 @@ remove-smpeg.patch
 remove-Hugo.patch
 remove-luximono-font.patch
 fix-font-config.patch
+fix-fsf-address.patch

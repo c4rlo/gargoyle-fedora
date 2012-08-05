@@ -1,6 +1,6 @@
 Name:           gargoyle
 Version:        2011.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Interactive fiction interpreter with excellent text rendering
 
 Group:          Amusements/Games
@@ -20,6 +20,7 @@ Patch0:         remove-smpeg.patch
 Patch1:         remove-Hugo.patch
 Patch2:         remove-luximono-font.patch
 Patch3:         fix-font-config.patch
+Patch4:         fix-fsf-address.patch
 
 BuildRequires:  jam,SDL-devel,SDL_sound-devel,SDL_mixer-devel,gtk2-devel,freetype-devel,libjpeg-turbo-devel,desktop-file-utils
 Requires:       linux-libertine-fonts,liberation-mono-fonts
@@ -39,6 +40,7 @@ This package excludes the Hugo interpreter due to licensing restrictions.
 %patch1 -p2
 %patch2 -p2
 %patch3 -p2
+%patch4 -p2
 
 %build
 jam -s CFLAGS="%{optflags}"
@@ -86,6 +88,8 @@ desktop-file-install \
 %doc License.txt README.fedora
 
 %changelog
+* Sun Aug 05 2012 Carlo Teubner <carlo.teubner@gmail.com> 2011.1-2
+- Repackage for Fedora 17
 * Wed Dec 21 2011 Carlo Teubner <carlo.teubner@gmail.com> 2011.1-1
 - New upstream version 2011.1
 - No longer need to exclude the Alan interpreters
